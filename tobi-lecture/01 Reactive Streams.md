@@ -49,8 +49,42 @@ pull 방식은 미리 정해진 데이터에 대해서 값을 가져오는데 �
 반면에, push 방식은 정해진 것이 없지만 **구독해서 반응**하므로 훨씬 다이나믹하다는 특징을 가지고 있다.      
  
 * Observer 구현체는 여러 요소에 이벤트를 등록할 수 있더.      
-* Observable 구현체는 여러 Observer 구현체들에게 이벤트(데이터)를 전달할 수 있다.   
+* Observable 구현체는 여러 Observer 구현체들에게 이벤트(데이터)를 전달할 수 있다.  
+* 별도의 스레드에서 비동기적으로 동작시킬 수 있다.
+    * 다른 스레드에서 동작하는 여러 옵저버들이 결과 정보를 한번에 받아올 수 있다.   
 
+```java
+@SuppressWarnings("deprecation")
+public class Ob {
 
-  
+    static class IntObservable extends Observable implements Runnable {
+
+        @Override
+        public void run() {
+            for (int i = 1; i <= 10; i++) {
+                setChanged();
+                notifyObservers(i);
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        Observer ob = (o, arg) -> System.out.println(Thread.currentThread().getName() + " " + arg);
+
+        IntObservable io = new IntObservable();
+        io.addObserver(ob);
+
+        ExecutorService es = Executors.newSingleThreadExecutor();
+        es.execute(io);
+
+        System.out.println(Thread.currentThread().getName() + " EXIT");
+
+        es.shutdown();
+    }
+}
+```
+별개의 쓰레드에서 `IntObservable`가 run을 실행했고, `Observer`는 해당 별개 쓰레드에서 출력을 실행했다.             
+즉, 기존 쓰레드가 아닌 별개의 쓰레드에서 이벤트 발생과 처리를 한번에 수행할 수 있게끔 할 수 있다.(별개 쓰레드를 손쉽게 만들 수 있다.)        
+이 같은 방법은 push 방식으로 만들었다면 엄청 복잡했을 것이다.      
+
 
